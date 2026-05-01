@@ -115,7 +115,7 @@ export default function ChatArea({
         </div>
         <p className="input-hint">
           NEXUS can search the web, write code, and generate files.
-          {' '}Configure <code>NVIDIA_API_KEY</code> for real AI responses.
+          {' '}Configure <code>NVIDIA_API_KEY</code> or <code>OPENAI_API_KEY</code> for real AI responses.
         </p>
       </div>
     </main>

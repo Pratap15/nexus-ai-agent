@@ -7,7 +7,10 @@ import OutputPanel from './components/OutputPanel.jsx'
 // Helpers
 // ---------------------------------------------------------------------------
 function generateId() {
-  return `sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  // Use the Web Crypto API for a non-guessable session identifier
+  const arr = new Uint32Array(3)
+  crypto.getRandomValues(arr)
+  return `sess_${Date.now()}_${Array.from(arr).map((n) => n.toString(36)).join('')}`
 }
 
 function truncateTitle(task, maxLen = 36) {

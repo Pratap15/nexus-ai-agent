@@ -58,15 +58,33 @@ async def _send(websocket: WebSocket, msg_type: str, content: str, **kwargs):
 
 
 def _parse_actions(text: str) -> list:
-    """Extract all action tags from an LLM response."""
+    """Extract all action tags from an LLM response.
+
+    Patterns use non-backtracking alternation instead of ``.*?`` with
+    ``re.DOTALL`` to avoid polynomial/exponential ReDoS when the closing tag
+    is absent or the input is adversarially crafted.
+    """
     actions = []
 
-    for m in re.finditer(r"<search>(.*?)</search>", text, re.DOTALL):
+    # ``(?:[^<]|<(?!/search>))*``  matches anything that is not the start of
+    # ``</search>``, preventing catastrophic backtracking.
+    _search_re = re.compile(
+        r"<search>((?:[^<]|<(?!/search>))*)</search>", re.IGNORECASE
+    )
+    _file_re = re.compile(
+        r'<create_file name="([^"]{1,200})">'
+        r"((?:[^<]|<(?!/create_file))*)"
+        r"</create_file>",
+        re.IGNORECASE,
+    )
+    _finish_re = re.compile(
+        r"<finish>((?:[^<]|<(?!/finish>))*)</finish>", re.IGNORECASE
+    )
+
+    for m in _search_re.finditer(text):
         actions.append({"type": "search", "query": m.group(1).strip()})
 
-    for m in re.finditer(
-        r'<create_file name="([^"]+)">(.*?)</create_file>', text, re.DOTALL
-    ):
+    for m in _file_re.finditer(text):
         actions.append(
             {
                 "type": "create_file",
@@ -75,7 +93,7 @@ def _parse_actions(text: str) -> list:
             }
         )
 
-    m = re.search(r"<finish>(.*?)</finish>", text, re.DOTALL)
+    m = _finish_re.search(text)
     if m:
         actions.append({"type": "finish", "summary": m.group(1).strip()})
 
